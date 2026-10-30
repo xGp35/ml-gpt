@@ -8,5 +8,12 @@ class Solution:
         # token_ids: 1D array of integer token IDs
         # Return the embedding vectors for the given token IDs
         # return np.round(your_answer, 5)
-        return np.round(embeddings[token_ids], 5)
+
+        # Using one hot encoding - wasteful.
+        vocab_size = embeddings.shape[0]
+        one_hot = np.eye(vocab_size)[token_ids]
+        ans =  one_hot @ embeddings
+        return np.round(ans, 5)
+
+        #return np.round(embeddings[token_ids], 5)
 

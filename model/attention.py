@@ -21,26 +21,26 @@ class SingleHeadAttention(nn.Module):
     def forward(self, embedded: TensorType[float]) -> TensorType[float]:
         # embedded is - [B, T, C]
         # W_Q is stored as [A,C]. (out x in)
-        # 1. Project input through K, Q, V linear layers
-        # 2. Compute attention scores: (Q @ K^T) / sqrt(attention_dim)
-        # 3. Apply causal mask: use torch.tril(torch.ones(...)) to build lower-triangular matrix,
-        #    then masked_fill positions where mask == 0 with float('-inf')
-        # 4. Apply softmax(dim=2) to masked scores
-        # 5. Return (scores @ V) rounded to 4 decimal places
         T = embedded.shape[1] 
         
+        # 1. Project input through K, Q, V linear layers
         K = self.W_K(embedded) # K is [B, T , A]
         Q = self.W_Q(embedded) # Q is [B, T , A]
         V = self.W_V(embedded) # V is [B, T , A]
 
+        # 2. Compute attention scores: (Q @ K^T) / sqrt(attention_dim)
         attention_matrix = Q @ K.transpose(-2, -1) # [B, T, T]
         # Since Q and K are both [B, T, A], your Q @ K.T does not produce the intended shape. That could work is there was one sentence. For batched attention, we have to use ".transpose(-2,-1)". 
         attention_scores = attention_matrix / (self.d_k ** 0.5)
 
+        # 3. Apply causal mask: use torch.tril(torch.ones(...)) to build lower-triangular matrix, then masked_fill positions where mask == 0 with float('-inf')
         mask = torch.tril(torch.ones(T, T))
         mask = (mask == 0) # Need to invert the mask so that the 1's in the matrix can be filled with -inf, when using masked_fill on attention_scores
         masked_scores = attention_scores.masked_fill(mask, value = float('-inf'))
         
+        # 4. Apply softmax(dim=2) to masked scores
         A = F.softmax(masked_scores, dim = -1) # softmax will be applied across last dimension in [B, T, T].
+
+        # 5. Return (scores @ V) rounded to 4 decimal places
         return torch.round(A @ V, decimals=4)
 
